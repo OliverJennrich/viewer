@@ -1,18 +1,11 @@
+<!-- -*- mode: js; -*-
+    -->
+
     <!-- 
 TODO:
-Progress bars!
-Stereo anaglyph
-
-http://jabtunes.com/labs/3d/dof/webgl_postprocessing_dof2.html
-http://alteredqualia.com/three/examples/webgl_postprocessing_ssao.html
-http://john-chapman-graphics.blogspot.co.uk/2013/01/ssao-tutorial.html
-http://www.realtimerendering.com/erich/udacity/exercises/cs291-interactive-rendering/test_code/orbit_and_pan.html    
-http://mrdoob.github.io/three.js/examples/webgl_lights_hemisphere.html    
-http://www.lab4games.net/zz85/blog/tag/threejs/
-http://stemkoski.github.io/Three.js/Anaglyph.html
-http://stemkoski.github.io/Three.js/Outline.html
-
-    roll up commands
+  Sun!
+  Navcam pictures
+  
 -->
     <!DOCTYPE html>
     <html lang="en">
@@ -135,7 +128,7 @@ var SCREEN_HEIGHT = window.innerHeight;
 /* Variables ****************************************************************************/
 
 // A somwhat reduced model
-var bjsonPath = "models/67P_HD_2015-05-09-r10.js";
+var bjsonPath = "models/67P_HD_2015-05-09-r10_b.js";
 var texturePath = "texture/texture_Background_s.png";
 
 var scaleFactor = 0.05;  // 20 units per kilometre
@@ -215,8 +208,8 @@ function init() {
     container.appendChild( stats.domElement );
 
     geometry = new THREE.Geometry();
-    sprite = new THREE.Sprite(THREE.ImageUtils.loadTexture( "ball.png" ));
-    group = new THREE.Group();
+//    sprite = new THREE.Sprite(THREE.ImageUtils.loadTexture( "ball.png" ));
+    // group = new THREE.Group();
     
     // Loader splash
     THREE.DefaultLoadingManager.onProgress = function ( item, loaded, total ) {
@@ -233,8 +226,8 @@ function init() {
     };
 	
     // create the loader for the 3D-object            
-    //var bjsonLoader = new THREE.BinaryLoader(true);
-    var bjsonLoader = new THREE.JSONLoader();
+    var bjsonLoader = new THREE.BinaryLoader(true);
+    //var bjsonLoader = new THREE.JSONLoader();
     
     // Parameters
     params = new createParams();
@@ -304,23 +297,23 @@ function init() {
 
     // Cube - testing only
     // Create an array of materials to be used in a cube, one for each side
-    var cubeMaterialArray = [];
+    // var cubeMaterialArray = [];
     // order to add materials: x+,x-,y+,y-,z+,z-
-    cubeMaterialArray.push( new THREE.MeshBasicMaterial( { color: 0xff3333 } ) );
-    cubeMaterialArray.push( new THREE.MeshBasicMaterial( { color: 0xff8800 } ) );
-    cubeMaterialArray.push( new THREE.MeshBasicMaterial( { color: 0xffff33 } ) );
-    cubeMaterialArray.push( new THREE.MeshBasicMaterial( { color: 0x33ff33 } ) );
-    cubeMaterialArray.push( new THREE.MeshBasicMaterial( { color: 0x3333ff } ) );
-    cubeMaterialArray.push( new THREE.MeshBasicMaterial( { color: 0x8833ff } ) );
-    var cubeMaterials = new THREE.MeshFaceMaterial( cubeMaterialArray );
+   //  cubeMaterialArray.push( new THREE.MeshBasicMaterial( { color: 0xff3333 } ) );
+//     cubeMaterialArray.push( new THREE.MeshBasicMaterial( { color: 0xff8800 } ) );
+//     cubeMaterialArray.push( new THREE.MeshBasicMaterial( { color: 0xffff33 } ) );
+//     cubeMaterialArray.push( new THREE.MeshBasicMaterial( { color: 0x33ff33 } ) );
+//     cubeMaterialArray.push( new THREE.MeshBasicMaterial( { color: 0x3333ff } ) );
+//     cubeMaterialArray.push( new THREE.MeshBasicMaterial( { color: 0x8833ff } ) );
+//     var cubeMaterials = new THREE.MeshFaceMaterial( cubeMaterialArray );
     // Cube parameters: width (x), height (y), depth (z), 
     //        (optional) segments along x, segments along y, segments along z
-    var cubeGeometry = new THREE.CubeGeometry( 100, 100, 100, 1, 1, 1 );
+    //    var cubeGeometry = new THREE.CubeGeometry( 100, 100, 100, 1, 1, 1 );
     // using THREE.MeshFaceMaterial() in the constructor below
     //   causes the mesh to use the materials stored in the geometry
-    cube = new THREE.Mesh( cubeGeometry, cubeMaterials );
-    cube.position.set(0,0,0);
-    //scene.add( cube );		
+    //    cube = new THREE.Mesh( cubeGeometry, cubeMaterials );
+    // cube.position.set(0,0,0);
+    // scene.add( cube );		
 
     // MODEL + Texture
     // createScene is a call-back function, so after this, the scene is complete
