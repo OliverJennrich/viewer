@@ -98,6 +98,53 @@ uniform sampler2D t10;
     
          }
 
+</script>
+
+ <script id="fragment_shader8" type="x-shader/x-fragment">
+         #ifdef GL_ES
+           precision highp float;
+         #endif
+
+         uniform sampler2D t0;
+uniform sampler2D t1;
+uniform sampler2D t2;
+uniform sampler2D t3;
+uniform sampler2D t4;
+uniform sampler2D t5;
+uniform sampler2D t6;
+uniform sampler2D t7;
+
+
+
+         varying vec2 vUv;
+
+         void main(void)
+         {
+             vec3 c;
+             vec4 C0 = texture2D(t0, vUv);
+	     vec4 C1 = texture2D(t1, vUv);
+	     vec4 C2 = texture2D(t2, vUv);
+	     vec4 C3 = texture2D(t3, vUv);
+	     vec4 C4 = texture2D(t4, vUv);
+	     vec4 C5 = texture2D(t5, vUv);
+	     vec4 C6 = texture2D(t6, vUv);
+	     vec4 C7 = texture2D(t7, vUv);
+	 
+	    
+           //c = Ca.rgb * Ca.a + Cb.rgb * Cb.a * (1.0 - Ca.a);
+             c = C0.rgb +
+		 C1.rgb*C1.a + 
+		 C2.rgb*C2.a +
+		 C3.rgb*C3.a +
+		 C4.rgb*C4.a +
+		 C5.rgb*C5.a +
+		 C6.rgb*C6.a + 
+		 C7.rgb*C7.a;
+		 
+             gl_FragColor= vec4(c,1.0);
+    
+         }
+
     </script>
 
    
@@ -128,7 +175,7 @@ var SCREEN_HEIGHT = window.innerHeight;
 /* Variables ****************************************************************************/
 
 // A somwhat reduced model
-var bjsonPath = "models/67P_HD_2015-05-09-r10_b.js";
+var bjsonPath = "models/67P_HD_2015-05-09-r10.js";
 var texturePath = "texture/texture_Background_s.png";
 
 var scaleFactor = 0.05;  // 20 units per kilometre
@@ -149,6 +196,8 @@ var params, region_toggles;     // parameters in the GUI
 var textures;
 
 var loadtext;
+
+var IsiPhoneOS;
 
 var directionalLight, ambient;
 
@@ -182,9 +231,13 @@ function init() {
     var IsiPod = navigator.userAgent.indexOf("iPod") != -1 ;
     var IsiPad = navigator.userAgent.indexOf("iPad") != -1 ;
 
-    var IsiPhoneOS = IsiPhone || IsiPad || IsiPod ;
+    IsiPhoneOS = IsiPhone || IsiPad || IsiPod ;
 
     console.log("iOS "+IsiPhoneOS);
+
+//    var fragmentUnits = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
+
+  //  console.log("Max. texture units "+fragmentUnits);
 
     var container = document.getElementById( 'container' );
 
@@ -488,11 +541,20 @@ function createMaterial( u ){
 	};
 
 	// set up the shade materials
-	myTextureMat = new THREE.ShaderMaterial({
-	    uniforms: myUniforms,
-	    vertexShader: document.getElementById('vertex_shader').innerHTML,
-	    fragmentShader: document.getElementById('fragment_shader').innerHTML
-	});       
+	if (IsiPhoneOS) {
+	    myTextureMat = new THREE.ShaderMaterial({
+		uniforms: myUniforms,
+		vertexShader: document.getElementById('vertex_shader').innerHTML,
+		fragmentShader: document.getElementById('fragment_shader8').innerHTML
+	    });
+	}
+	else {
+	    myTextureMat = new THREE.ShaderMaterial({
+		uniforms: myUniforms,
+		vertexShader: document.getElementById('vertex_shader').innerHTML,
+		fragmentShader: document.getElementById('fragment_shader').innerHTML
+	    });
+	}
 
 	// Setup render-to-texture scene
 	myCamera = new THREE.OrthographicCamera( imageWidth / - 2, imageWidth / 2, imageHeight / 2, imageHeight / - 2, -10000, 10000 );
@@ -517,8 +579,17 @@ function createMaterial( u ){
     // This call can be somewhat time-consuming!
     
     //    var t0 = performance.now();
-    var tex = rendertoTexture( u.t0.value, u.t1.value, u.t2.value, u.t3.value,  u.t4.value,  u.t5.value, u.t6.value, u.t7.value, u.t8.value,  u.t9.value,  u.t10.value  );
-    tex = rendertoTexture(tex, u.t11.value, u.t12.value, u.t13.value,  u.t14.value,  u.t15.value, u.t16.value, u.t17.value, u.t18.value,  u.t19.value,  textures.tBlank );
+    var tex;
+    
+    if (IsiPhoneOS) {
+	tex = rendertoTexture( u.t0.value, u.t1.value, u.t2.value, u.t3.value,  u.t4.value,  u.t5.value, u.t6.value, u.t7.value  );
+	tex = rendertoTexture(tex, u.t8.value,  u.t9.value,  u.t10.value, u.t11.value, u.t12.value, u.t13.value,  u.t14.value );
+	tex = rendertoTexture(tex, u.t15.value, u.t16.value, u.t17.value, u.t18.value,  u.t19.value,  textures.tBlank ,textures.tBlank );
+    }
+    else {
+	tex = rendertoTexture( u.t0.value, u.t1.value, u.t2.value, u.t3.value,  u.t4.value,  u.t5.value, u.t6.value, u.t7.value, u.t8.value,  u.t9.value,  u.t10.value  );
+	tex = rendertoTexture(tex, u.t11.value, u.t12.value, u.t13.value,  u.t14.value,  u.t15.value, u.t16.value, u.t17.value, u.t18.value,  u.t19.value,  textures.tBlank );
+    }
     //     var t1 = performance.now();
     //    console.log("Call to rendertoTexture took " + (t1 - t0) + " milliseconds.")
     
