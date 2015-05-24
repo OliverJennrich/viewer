@@ -4,7 +4,9 @@
     <!-- 
 TODO:
   Sun!
-  Navcam pictures
+Navcam pictures
+
+Lots of iffiness with safari.
   
 -->
     <!DOCTYPE html>
@@ -42,7 +44,8 @@ TODO:
     <script src="js/Detector.js"></script>
     <script src="js/TrackballControls.js"></script>
     <script src="js/OrbitControls.js"></script>
-    <script src="js/AnaglyphEffect.js"></script>
+    <script src="js/jquery.min.js"></script>
+    <!-- script src="js/AnaglyphEffect.js"></script> -->
     <script src="js/stats.min.js"></script>
 
     <script type="text/javascript" src="js/dat.gui.min.js"></script>
@@ -206,6 +209,7 @@ var mesh;
 
 var cube;  // testing only1
 
+var orbitpos;
 // Create the GUI
 var gui = new dat.GUI();
 
@@ -216,9 +220,12 @@ var rad=0;
 // Needed? Anyway, a flag that indicates that the script has just loaded
 var firsttime=true;
 
+// variables for the 'transparent sphere gimmick'
+var targetList = [];
+var projector, mouse = { x: 0, y: 0 };
+
+
 init();
-
-
 animate();
 
 //document.addEventListener( 'keypress', onDocumentKeyPress, false );
@@ -343,31 +350,32 @@ function init() {
     //var gridHelper = new THREE.GridHelper( 200, 10 );		
     //scene.add( gridHelper );
 
+    // load coordinates of navcam images
+    // var xmlhttp = new XMLHttpRequest();
+    var url = "data/orbit.json";
 
-    // Progress markers
-    group = new THREE.Group();
-    scene.add( group );
+    function loadJSON(callback) {   
 
-    // Cube - testing only
-    // Create an array of materials to be used in a cube, one for each side
-    // var cubeMaterialArray = [];
-    // order to add materials: x+,x-,y+,y-,z+,z-
-   //  cubeMaterialArray.push( new THREE.MeshBasicMaterial( { color: 0xff3333 } ) );
-//     cubeMaterialArray.push( new THREE.MeshBasicMaterial( { color: 0xff8800 } ) );
-//     cubeMaterialArray.push( new THREE.MeshBasicMaterial( { color: 0xffff33 } ) );
-//     cubeMaterialArray.push( new THREE.MeshBasicMaterial( { color: 0x33ff33 } ) );
-//     cubeMaterialArray.push( new THREE.MeshBasicMaterial( { color: 0x3333ff } ) );
-//     cubeMaterialArray.push( new THREE.MeshBasicMaterial( { color: 0x8833ff } ) );
-//     var cubeMaterials = new THREE.MeshFaceMaterial( cubeMaterialArray );
-    // Cube parameters: width (x), height (y), depth (z), 
-    //        (optional) segments along x, segments along y, segments along z
-    //    var cubeGeometry = new THREE.CubeGeometry( 100, 100, 100, 1, 1, 1 );
-    // using THREE.MeshFaceMaterial() in the constructor below
-    //   causes the mesh to use the materials stored in the geometry
-    //    cube = new THREE.Mesh( cubeGeometry, cubeMaterials );
-    // cube.position.set(0,0,0);
-    // scene.add( cube );		
+	var xobj = new XMLHttpRequest();
+        xobj.overrideMimeType("application/json");
+	xobj.open('GET', url , false); 
+	xobj.onreadystatechange = function () {
+            if (xobj.readyState == 4 && xobj.status == "200") {
+		// Required use of an anonymous callback as .open will NOT return a value but simply returns undefined in asynchronous mode
+		callback(xobj.responseText);
+            }
+	};
+	xobj.send(null);  
+    }
 
+    loadJSON(function(response) {
+	// Parse JSON string into object
+	orbitpos = JSON.parse(response);
+    });
+
+
+ 
+ 
     // MODEL + Texture
     // createScene is a call-back function, so after this, the scene is complete
     bjsonLoader.load(bjsonPath,createScene);
@@ -395,8 +403,34 @@ function init() {
     // intialise the clock
     clock = new THREE.Clock( true );
 
+    // initialize object to perform world/screen calculations
+    projector = new THREE.Projector();
+
+    var spheregeometry = new THREE.SphereGeometry( 10, 16, 16 );
+    var spherematerial = new THREE.MeshPhongMaterial( {color: 0x8888ff} );
+    spherematerial.transparent = true;
+    spherematerial.opacity = 1.0;
+    for (ii=0; ii<orbitpos.length; ii++){
+	var sphere = new THREE.Mesh( spheregeometry, spherematerial );
+	sphere.position.x = orbitpos[ii].x/scaleFactor;
+	sphere.position.y = orbitpos[ii].y/scaleFactor;
+	sphere.position.z = orbitpos[ii].z/scaleFactor;
+
+	scene.add( sphere );
+
+	// Add the sphere to the target list
+	targetList.push(sphere);
+    }
+
+	
+    // when the mouse moves, call the given function
+    document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+
 }
-		
+
+
+
+ 
 
 // **********************************************************************
 // **********************************************************************
@@ -970,14 +1004,42 @@ function onDocumentKeyPress( event ) {
     };
 }
 
-
 function onDocumentMouseDown( event ) 
 {
+	// the following line would stop any other event handler from firing
+	// (such as the mouse's TrackballControls)
+	// event.preventDefault();
 	
+    function toString(v) { return "[ " + v.x + ", " + v.y + ", " + v.z + " ]"; }
     console.log("Click.");
-    console.log(event.which);
 	
+	// update the mouse variable
+    mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+    mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+	
+	// find intersections
+
+	// create a Ray with origin at the mouse position
+	//   and direction into the scene (camera direction)
+    var vector = new THREE.Vector3( mouse.x, mouse.y, 1 );
+    projector.unprojectVector( vector, camera );
+    var ray = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
+
+    // create an array containing all objects in the scene with which the ray intersects
+    var intersects = ray.intersectObjects( targetList );
+	
+    // if there is one (or more) intersections
+    if ( intersects.length > 0 )
+	{
+	    console.log("Hit @ " + toString( intersects[0].point ) );
+	    // change the color of the closest face.
+	    intersects[ 0 ].face.color.setRGB( 0.8 * Math.random() + 0.2, 0, 0 ); 
+	    intersects[ 0 ].object.geometry.colorsNeedUpdate = true;
+	}
+
 }
+
+
 
 
 function onDocumentMouseMove( event)
