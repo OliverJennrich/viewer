@@ -181,7 +181,8 @@ var SCREEN_HEIGHT = window.innerHeight;
 var bjsonPath = "models/67P_HD_2015-05-09-r10.js";
 var texturePath = "texture/texture_Background_s.png";
 
-var scaleFactor = 0.05;  // 20 units per kilometre
+var scaleFactor = 1;  // 20 units per kilometre
+var scaleFactorComet = 0.001;  // 1000 units per kilometre
 var rotZ = 175;
 
 var container;
@@ -223,6 +224,11 @@ var firsttime=true;
 // variables for the 'transparent sphere gimmick'
 var targetList = [];
 var projector, mouse = { x: 0, y: 0 };
+
+// scene and camera for the sprites
+var cameraOrtho, sceneOrtho;
+var spriteTL;
+var sprites = [];
 
 
 init();
@@ -280,7 +286,7 @@ function init() {
 	}
 	else {
 	    console.log( "DefaultLoadingManager: "+item+" " + loaded +'/'+ total );
-	    loadtext.innerHTML = loadtext.innerHTML + ".";
+	    if (firsttime) loadtext.innerHTML = loadtext.innerHTML + ".";
 	}
 	
     };
@@ -295,18 +301,92 @@ function init() {
 
     // textures
     textures = new createTextures();
+
+    // load coordinates of navcam images. The logic is as follows
+    //
+    // The coordinates and all the other data are loaded here.
+    // Whenever two or more observations are 'too close' they form an array and a
+    // mosaic should be requested
+    //
+    // Later, the right textures are read out of the 'obs_id' key whenever the mousekeydown event is
+    // triggered. The loading of the textures creates the sprite in a callback function
+
     
+    var url = "data/fits.json"; // this is the file in which the coordinates are stored
+
+    function loadJSON(callback) {   
+
+	var xobj = new XMLHttpRequest();
+        xobj.overrideMimeType("application/json");
+	xobj.open('GET', url , false); // false == synchronous, true == asynchronous
+	xobj.onreadystatechange = function () {
+            if (xobj.readyState == 4 && xobj.status == "200") {
+		// Required use of an anonymous callback as .open will NOT return a value but simply returns undefined in asynchronous mode
+		callback(xobj.responseText);
+            }
+	};
+	xobj.send(null);  
+    }
+
+    loadJSON(function(response) {
+	// Parse JSON string into object
+	orbitpos = JSON.parse(response);
+    });
+
+
+     // Scene!
+    scene = new THREE.Scene();
+
+    // orthoScene for the sprites
+    sceneOrtho = new THREE.Scene();
+
+    // Take the read coordinates and put a sphere on each position
+    var spheregeometry = new THREE.SphereGeometry( 1, 32, 32 );
+    var spherematerial = new THREE.MeshPhongMaterial( {color: 0x951e3a} );
+    spherematerial.transparent = true;
+    spherematerial.opacity = 0.4;
+    for (ii=0; ii<orbitpos.length; ii++){
+	var sphere = new THREE.Mesh( spheregeometry, spherematerial );
+
+	sphere.position.x = orbitpos[ii][0]["SC-COM_X"][0]/scaleFactor;
+	sphere.position.y = orbitpos[ii][0]["SC-COM_Y"][0]/scaleFactor;
+	sphere.position.z = orbitpos[ii][0]["SC-COM_Z"][0]/scaleFactor;
+
+	sphere.name =  '"'+orbitpos[ii][0]["OBS_ID"]+'"';
+		
+	for (jj=1; jj<orbitpos[ii].length; jj++){
+	    sphere.name = sphere.name + "," + '"'+orbitpos[ii][jj]["OBS_ID"]+'"';
+	}
+
+	sphere.name = "[" + sphere.name + "]"; // make that a parseable string!
+	console.log( ii + " " + sphere.name );
+
+	scene.add( sphere );
+
+	// Add the sphere to the target list
+	targetList.push(sphere);
+    }
+
     // Camera!
-    camera = new THREE.PerspectiveCamera(5, window.innerWidth / window.innerHeight, 1, 100000);
-    campos = new THREE.Vector3(0.00962532, 0.00264994, 0.99995);
-    camera.translateOnAxis( campos.normalize(), params.camera_distance/scaleFactor);
+    var width = window.innerWidth;
+    var height = window.innerHeight;
+    
+    camera = new THREE.PerspectiveCamera(5, width / height, 1, 100000);
+    // puts camera on axis of inertia
+    //    campos = new THREE.Vector3(0.00962532, 0.00264994, 0.99995);
+    campos = new THREE.Vector3( orbitpos[0][0]["SC-COM_X"][0], orbitpos[0][0]["SC-COM_Y"][0], orbitpos[0][0]["SC-COM_Z"][0]);
+    params.camera_distance = orbitpos[0][0]["TARGDIST"][0];
+    camera.translateOnAxis( campos.normalize(), 100+params.camera_distance/scaleFactor);
 
     
-    // Scene!
-    scene = new THREE.Scene(); 
-
+    // The ortho-camera for the sprites
+    cameraOrtho = new THREE.OrthographicCamera( - width / 2, width / 2, height / 2, - height / 2, 1, 10 );
+    cameraOrtho.position.z = 10;
+    
     // renderer
-    renderer.setSize( window.innerWidth, window.innerHeight );
+    renderer.setSize(width, height );
+    renderer.autoClear = false;
+    
     container.appendChild( renderer.domElement );
 
     // ORBIT AND PAN CONTROLS!
@@ -350,30 +430,7 @@ function init() {
     //var gridHelper = new THREE.GridHelper( 200, 10 );		
     //scene.add( gridHelper );
 
-    // load coordinates of navcam images
-    // var xmlhttp = new XMLHttpRequest();
-    var url = "data/orbit.json";
-
-    function loadJSON(callback) {   
-
-	var xobj = new XMLHttpRequest();
-        xobj.overrideMimeType("application/json");
-	xobj.open('GET', url , false); 
-	xobj.onreadystatechange = function () {
-            if (xobj.readyState == 4 && xobj.status == "200") {
-		// Required use of an anonymous callback as .open will NOT return a value but simply returns undefined in asynchronous mode
-		callback(xobj.responseText);
-            }
-	};
-	xobj.send(null);  
-    }
-
-    loadJSON(function(response) {
-	// Parse JSON string into object
-	orbitpos = JSON.parse(response);
-    });
-
-
+   
  
  
     // MODEL + Texture
@@ -406,22 +463,7 @@ function init() {
     // initialize object to perform world/screen calculations
     projector = new THREE.Projector();
 
-    var spheregeometry = new THREE.SphereGeometry( 10, 16, 16 );
-    var spherematerial = new THREE.MeshPhongMaterial( {color: 0x8888ff} );
-    spherematerial.transparent = true;
-    spherematerial.opacity = 1.0;
-    for (ii=0; ii<orbitpos.length; ii++){
-	var sphere = new THREE.Mesh( spheregeometry, spherematerial );
-	sphere.position.x = orbitpos[ii].x/scaleFactor;
-	sphere.position.y = orbitpos[ii].y/scaleFactor;
-	sphere.position.z = orbitpos[ii].z/scaleFactor;
-
-	scene.add( sphere );
-
-	// Add the sphere to the target list
-	targetList.push(sphere);
-    }
-
+   
 	
     // when the mouse moves, call the given function
     document.addEventListener( 'mousedown', onDocumentMouseDown, false );
@@ -654,7 +696,7 @@ function createScene( geometry ) {
     console.log("Mesh created");
 
     //scale up (or down as in this case)
-    mesh.scale.set(scaleFactor,scaleFactor,scaleFactor);
+    mesh.scale.set(scaleFactorComet,scaleFactorComet,scaleFactorComet);
 
 
     // Add the coordinate system for the body-axes
@@ -828,6 +870,78 @@ function createParams(){
 };
 
 
+function createHUDSprites ( texture ) {
+
+    var material = new THREE.SpriteMaterial( { map: texture } );
+
+    var width = material.map.image.width;
+    var height = material.map.image.height;
+
+    console.log( "Sprite width " + width + " height " + height);
+
+    sceneOrtho.remove( spriteTL );
+     for (ii=0;ii<sprites.length;ii++){
+//	 console.log("remove sprites from group");
+	 sceneOrtho.remove( sprites[ii] );
+     }
+    
+    spriteTL = new THREE.Sprite( material );
+    spriteTL.scale.set( width, height, 1 );
+    sceneOrtho.add( spriteTL );
+
+    // var material = new THREE.LineBasicMaterial({
+// 	color: 0xffffff
+//     });
+    
+//     var geometry = new THREE.Geometry();
+//     geometry.vertices.push(
+// 	new THREE.Vector3(  - window.innerWidth / 2 + width/2,   window.innerHeight / 2 - height/2, 0 ), // lower right corner
+// 	new THREE.Vector3(  - window.innerWidth / 2 + width/2,   window.innerHeight / 2 , 0 ), // top right corner
+// 	new THREE.Vector3(  - window.innerWidth / 2 ,   window.innerHeight / 2, 0 ), // top left corner
+// 	new THREE.Vector3(  - window.innerWidth / 2 ,   window.innerHeight / 2 - height/2, 0 )  // lower left corner
+//     );
+
+//     var border = new THREE.Line( geometry, material );
+//     sceneOrtho.add( border );
+
+//     spriteTR = new THREE.Sprite( material );
+//     spriteTR.scale.set( width, height, 1 );
+//     sceneOrtho.add( spriteTR );
+
+//     spriteBL = new THREE.Sprite( material );
+//     spriteBL.scale.set( width, height, 1 );
+//     sceneOrtho.add( spriteBL );
+
+//     spriteBR = new THREE.Sprite( material );
+//     spriteBR.scale.set( width, height, 1 );
+//     sceneOrtho.add( spriteBR );
+    
+//     spriteC = new THREE.Sprite( material );
+//     spriteC.scale.set( width, height, 1 );
+//     sceneOrtho.add( spriteC );
+
+    updateHUDSprites();
+
+};
+
+function updateHUDSprites () {
+
+    var width = window.innerWidth / 2;
+    var height = window.innerHeight / 2;
+
+    var material = spriteTL.material;
+
+    var imageWidth = material.map.image.width / 2;
+    var imageHeight = material.map.image.height / 2;
+
+    spriteTL.position.set( - width + imageWidth,   height - imageHeight, 1 ); // top left
+  //   spriteTR.position.set(   width - imageWidth,   height - imageHeight, 1 ); // top right
+//     spriteBL.position.set( - width + imageWidth, - height + imageHeight, 1 ); // bottom left
+//     spriteBR.position.set(   width - imageWidth, - height + imageHeight, 1 ); // bottom right
+//     spriteC.position.set( 0, 0, 1 ); // center
+
+};
+
 // **********************************************************************
 
 
@@ -958,7 +1072,13 @@ function update()
 }
 
 function render() {
-    renderer.render(scene, camera);
+    //renderer.clear();
+    renderer.render( scene, camera );
+    //renderer.clearDepth();
+    renderer.render( sceneOrtho, cameraOrtho );
+
+    //renderer.render(scene, camera);
+    //renderer.render( sceneOrtho, cameraOrtho );
 }
 
 function hide(object){
@@ -992,6 +1112,20 @@ function onWindowResize() {
     windowHalfY = window.innerHeight / 2;
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
+
+    
+    var width = window.innerWidth;
+    var height = window.innerHeight;
+    
+    
+    cameraOrtho.left = - width / 2;
+    cameraOrtho.right = width / 2;
+    cameraOrtho.top = height / 2;
+    cameraOrtho.bottom = - height / 2;
+    cameraOrtho.updateProjectionMatrix();
+
+    updateHUDSprites();
+
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
@@ -1030,12 +1164,86 @@ function onDocumentMouseDown( event )
 	
     // if there is one (or more) intersections
     if ( intersects.length > 0 )
-	{
-	    console.log("Hit @ " + toString( intersects[0].point ) );
+    {
+	var basename = JSON.parse( intersects[0].object.name );
+
+	
+	if (basename.length ==1) {
+	    var filename = "images/256/" + basename + "_256_f.png";
+	    console.log("Hit @ " + toString( intersects[0].object.position ) + " " + filename );
+
+	    // All the work is done by the callback 
+	    THREE.ImageUtils.loadTexture( filename, undefined, createHUDSprites );
+           
 	    // change the color of the closest face.
-	    intersects[ 0 ].face.color.setRGB( 0.8 * Math.random() + 0.2, 0, 0 ); 
-	    intersects[ 0 ].object.geometry.colorsNeedUpdate = true;
+	    //	    intersects[ 0 ].face.color.setRGB( 0.8 * Math.random() + 0.2, 0, 0 ); 
+	    //	    intersects[ 0 ].object.geometry.colorsNeedUpdate = true;
+	   
 	}
+	else {
+	    var filename;
+	    var map = new Array(4);
+	    var material = new Array(4);
+	    console.log("Hit @ " + toString( intersects[0].object.position ));
+	    for (jj=0;jj<basename.length;jj++){
+		// create the filename
+		filename =  "images/128/" + basename[jj] + "_128_f.png";
+	
+		// load the maps
+		map[jj]  = new THREE.ImageUtils.loadTexture( filename );
+		// create the materials
+		material[jj] = new THREE.SpriteMaterial( { map: map[jj] } );
+
+		// console.log(filename);
+	    }
+
+	    // remove the thumbnail (if it was ever there, fails silently)
+	    for (ii=0;ii<sprites.length;ii++){
+		console.log("remove sprites from group");
+		sceneOrtho.remove( sprites[ii] );
+	    }
+	    sceneOrtho.remove( spriteTL );
+	    
+	    // ßsceneOrtho.remove( spriteg );
+	    //console.log('sprite group removed');
+	    
+	    // make it group in this scope
+	    //	    spritegroup = new THREE.Group();
+	    // console.log('sprite group created');
+	    
+	    // Assume the four thumbnails have the same size
+	    var width = 128;// material[0].map.image.width;
+	    var height = 128;//material[0].map.image.height;
+	    
+	    // set the size of the group (!)
+	    // spritegroup.scale.set( 2*width, 2*height, 1 );
+
+	    
+	    sprites = [ new THREE.Sprite( material[0] ), new THREE.Sprite( material[1] ), new THREE.Sprite( material[2] ), new THREE.Sprite( material[3] )];
+	    // console.log('sprites created');
+	    // arrange them
+
+	    var windowwidth = window.innerWidth / 2;
+	    var windowheight = window.innerHeight / 2;
+
+	    sprites[1].position.set( - windowwidth + width/2,   windowheight - height/2, 1 ); // top left
+	  	    
+	    sprites[2].position.set( - windowwidth + 3 * width/2,   windowheight - height/2, 1 ); // top right
+	  	    
+	    sprites[0].position.set( - windowwidth + width/2,   windowheight - 3 * height/2, 1 ); // bottom left
+	  	    
+	    sprites[3].position.set( - windowwidth + 3 * width/2,   windowheight - 3 * height/2, 1 ); // bottom right
+	  
+	    for (ii=0;ii<sprites.length;ii++){
+		console.log("add sprites to group");
+		sprites[ii].scale.set(width,height,1);
+		sceneOrtho.add( sprites[ii] );
+	    }
+	    
+	   // sceneOrtho.add( spritegroup );
+
+	}
+    }
 
 }
 
