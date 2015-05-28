@@ -889,37 +889,6 @@ function createHUDSprites ( texture ) {
     spriteTL.scale.set( width, height, 1 );
     sceneOrtho.add( spriteTL );
 
-    // var material = new THREE.LineBasicMaterial({
-// 	color: 0xffffff
-//     });
-    
-//     var geometry = new THREE.Geometry();
-//     geometry.vertices.push(
-// 	new THREE.Vector3(  - window.innerWidth / 2 + width/2,   window.innerHeight / 2 - height/2, 0 ), // lower right corner
-// 	new THREE.Vector3(  - window.innerWidth / 2 + width/2,   window.innerHeight / 2 , 0 ), // top right corner
-// 	new THREE.Vector3(  - window.innerWidth / 2 ,   window.innerHeight / 2, 0 ), // top left corner
-// 	new THREE.Vector3(  - window.innerWidth / 2 ,   window.innerHeight / 2 - height/2, 0 )  // lower left corner
-//     );
-
-//     var border = new THREE.Line( geometry, material );
-//     sceneOrtho.add( border );
-
-//     spriteTR = new THREE.Sprite( material );
-//     spriteTR.scale.set( width, height, 1 );
-//     sceneOrtho.add( spriteTR );
-
-//     spriteBL = new THREE.Sprite( material );
-//     spriteBL.scale.set( width, height, 1 );
-//     sceneOrtho.add( spriteBL );
-
-//     spriteBR = new THREE.Sprite( material );
-//     spriteBR.scale.set( width, height, 1 );
-//     sceneOrtho.add( spriteBR );
-    
-//     spriteC = new THREE.Sprite( material );
-//     spriteC.scale.set( width, height, 1 );
-//     sceneOrtho.add( spriteC );
-
     updateHUDSprites();
 
 };
@@ -935,10 +904,6 @@ function updateHUDSprites () {
     var imageHeight = material.map.image.height / 2;
 
     spriteTL.position.set( - width + imageWidth,   height - imageHeight, 1 ); // top left
-  //   spriteTR.position.set(   width - imageWidth,   height - imageHeight, 1 ); // top right
-//     spriteBL.position.set( - width + imageWidth, - height + imageHeight, 1 ); // bottom left
-//     spriteBR.position.set(   width - imageWidth, - height + imageHeight, 1 ); // bottom right
-//     spriteC.position.set( 0, 0, 1 ); // center
 
 };
 
@@ -970,9 +935,7 @@ function animate() {
 	//	rad = 25* clock.getDelta() *params.omega * Math.PI / 180;
 	rad = -params.omega * Math.PI / 180;
 	body.rotateOnAxis(cometaxis,rad);
-//	rotateAroundObjectAxis(body, cometaxis, params.omega * Math.PI / 180);
-//	rotateAroundObjectAxis(cube, cometaxis, params.omega * Math.PI / 180);
-//	rotateAroundObjectAxis(bodyorigin, bodyaxis,  params.omega * Math.PI / 180);
+
     }
     // re-render the scene
     render();
@@ -1072,13 +1035,13 @@ function update()
 }
 
 function render() {
+    // We need to render for both cameras, the normal one pointing to the comet
+    // and the 'Ortho' one pointing to the sprites
+    
     //renderer.clear();
     renderer.render( scene, camera );
     //renderer.clearDepth();
     renderer.render( sceneOrtho, cameraOrtho );
-
-    //renderer.render(scene, camera);
-    //renderer.render( sceneOrtho, cameraOrtho );
 }
 
 function hide(object){
@@ -1140,45 +1103,41 @@ function onDocumentKeyPress( event ) {
 
 function onDocumentMouseDown( event ) 
 {
-	// the following line would stop any other event handler from firing
-	// (such as the mouse's TrackballControls)
-	// event.preventDefault();
-	
+    // the following line would stop any other event handler from firing
+    // (such as the mouse's TrackballControls)
+    // event.preventDefault();
+    
     function toString(v) { return "[ " + v.x + ", " + v.y + ", " + v.z + " ]"; }
-    console.log("Click.");
-	
-	// update the mouse variable
+    //console.log("Click.");
+    
+    // update the mouse variable
     mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
     mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-	
-	// find intersections
+    
+    // find intersections
 
-	// create a Ray with origin at the mouse position
-	//   and direction into the scene (camera direction)
+    // create a Ray with origin at the mouse position
+    //   and direction into the scene (camera direction)
     var vector = new THREE.Vector3( mouse.x, mouse.y, 1 );
     projector.unprojectVector( vector, camera );
     var ray = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
 
     // create an array containing all objects in the scene with which the ray intersects
     var intersects = ray.intersectObjects( targetList );
-	
+    
     // if there is one (or more) intersections
     if ( intersects.length > 0 )
     {
 	var basename = JSON.parse( intersects[0].object.name );
 
-	
+	// Distinguish between only one image and a mosaic of 4 images
 	if (basename.length ==1) {
 	    var filename = "images/256/" + basename + "_256_f.png";
 	    console.log("Hit @ " + toString( intersects[0].object.position ) + " " + filename );
 
 	    // All the work is done by the callback 
 	    THREE.ImageUtils.loadTexture( filename, undefined, createHUDSprites );
-           
-	    // change the color of the closest face.
-	    //	    intersects[ 0 ].face.color.setRGB( 0.8 * Math.random() + 0.2, 0, 0 ); 
-	    //	    intersects[ 0 ].object.geometry.colorsNeedUpdate = true;
-	   
+            
 	}
 	else {
 	    var filename;
@@ -1188,60 +1147,63 @@ function onDocumentMouseDown( event )
 	    for (jj=0;jj<basename.length;jj++){
 		// create the filename
 		filename =  "images/128/" + basename[jj] + "_128_f.png";
-	
+		
 		// load the maps
 		map[jj]  = new THREE.ImageUtils.loadTexture( filename );
 		// create the materials
 		material[jj] = new THREE.SpriteMaterial( { map: map[jj] } );
 
-		// console.log(filename);
+		console.log(filename);
 	    }
 
 	    // remove the thumbnail (if it was ever there, fails silently)
 	    for (ii=0;ii<sprites.length;ii++){
-		console.log("remove sprites from group");
+		// console.log("remove sprites from group");
 		sceneOrtho.remove( sprites[ii] );
 	    }
 	    sceneOrtho.remove( spriteTL );
-	    
-	    // ßsceneOrtho.remove( spriteg );
-	    //console.log('sprite group removed');
-	    
-	    // make it group in this scope
-	    //	    spritegroup = new THREE.Group();
-	    // console.log('sprite group created');
 	    
 	    // Assume the four thumbnails have the same size
 	    var width = 128;// material[0].map.image.width;
 	    var height = 128;//material[0].map.image.height;
 	    
-	    // set the size of the group (!)
-	    // spritegroup.scale.set( 2*width, 2*height, 1 );
-
-	    
+	  	    
 	    sprites = [ new THREE.Sprite( material[0] ), new THREE.Sprite( material[1] ), new THREE.Sprite( material[2] ), new THREE.Sprite( material[3] )];
 	    // console.log('sprites created');
-	    // arrange them
 
+	    // arrange them
 	    var windowwidth = window.innerWidth / 2;
 	    var windowheight = window.innerHeight / 2;
 
+	    // The images need to be arranged as follows
+	    //
+	    //  +--------+--------+
+	    //  |        |        |
+	    //  |   (1)  |  (2)   |
+	    //  |        |        |
+	    //  |        |        |
+	    //  +--------+--------+
+	    //  |        |        |
+	    //  |   (0)  |  (3)   |
+	    //  |        |        |
+	    //  |        |        |
+	    //  +--------+--------+
+
+
 	    sprites[1].position.set( - windowwidth + width/2,   windowheight - height/2, 1 ); // top left
-	  	    
+	    
 	    sprites[2].position.set( - windowwidth + 3 * width/2,   windowheight - height/2, 1 ); // top right
-	  	    
+	    
 	    sprites[0].position.set( - windowwidth + width/2,   windowheight - 3 * height/2, 1 ); // bottom left
-	  	    
+	    
 	    sprites[3].position.set( - windowwidth + 3 * width/2,   windowheight - 3 * height/2, 1 ); // bottom right
-	  
+	    
 	    for (ii=0;ii<sprites.length;ii++){
-		console.log("add sprites to group");
+		// console.log("add sprites to group");
 		sprites[ii].scale.set(width,height,1);
 		sceneOrtho.add( sprites[ii] );
 	    }
 	    
-	   // sceneOrtho.add( spritegroup );
-
 	}
     }
 
