@@ -44,7 +44,7 @@ Lots of iffiness with safari.
     <script src="js/Detector.js"></script>
     <script src="js/TrackballControls.js"></script>
     <script src="js/OrbitControls.js"></script>
-    <script src="js/jquery.min.js"></script>
+    <!-- script src="js/jquery.min.js"></script> -->
     <!-- script src="js/AnaglyphEffect.js"></script> -->
     <script src="js/stats.min.js"></script>
 
@@ -248,10 +248,6 @@ function init() {
 
     console.log("iOS "+IsiPhoneOS);
 
-//    var fragmentUnits = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
-
-  //  console.log("Max. texture units "+fragmentUnits);
-
     var container = document.getElementById( 'container' );
 
     // Create the progress bar
@@ -274,13 +270,13 @@ function init() {
     container.appendChild( stats.domElement );
 
     geometry = new THREE.Geometry();
-//    sprite = new THREE.Sprite(THREE.ImageUtils.loadTexture( "ball.png" ));
-    // group = new THREE.Group();
+
     
     // Loader splash
     THREE.DefaultLoadingManager.onProgress = function ( item, loaded, total ) {
 
 	if (loaded==total) {
+	    console.log( "DefaultLoadingManager: "+item+" " + loaded +'/'+ total );
 	    console.log("Done!");
 	    time0= Date.now()
 	}
@@ -318,7 +314,7 @@ function init() {
 
 	var xobj = new XMLHttpRequest();
         xobj.overrideMimeType("application/json");
-	xobj.open('GET', url , false); // false == synchronous, true == asynchronous
+	xobj.open('GET', url , true); // false == synchronous, true == asynchronous
 	xobj.onreadystatechange = function () {
             if (xobj.readyState == 4 && xobj.status == "200") {
 		// Required use of an anonymous callback as .open will NOT return a value but simply returns undefined in asynchronous mode
@@ -328,11 +324,50 @@ function init() {
 	xobj.send(null);  
     }
 
+    var dataready=false;
     loadJSON(function(response) {
 	// Parse JSON string into object
 	orbitpos = JSON.parse(response);
+	console.log("Data is ready!");
+	dataready=true;
+
+	for (ii=0; ii<orbitpos.length; ii++){
+
+	    var sphere = new THREE.Mesh( spheregeometry, spherematerial );
+	    sphere.position.x = orbitpos[ii][0]["SC-COM_X"][0]/scaleFactor;
+	    sphere.position.y = orbitpos[ii][0]["SC-COM_Y"][0]/scaleFactor;
+	    sphere.position.z = orbitpos[ii][0]["SC-COM_Z"][0]/scaleFactor;
+
+	    sphere.name =  '"'+orbitpos[ii][0]["OBS_ID"]+'"';
+	    
+	    for (jj=1; jj<orbitpos[ii].length; jj++){
+		sphere.name = sphere.name + "," + '"'+orbitpos[ii][jj]["OBS_ID"]+'"';
+	    }
+
+	    sphere.name = "[" + sphere.name + "]"; // make that a parseable string!
+	    // console.log( ii + " " + sphere.name );
+
+	    scene.add( sphere );
+
+	    // Add the sphere to the target list
+	    targetList.push(sphere);
+	}
+	    // This puts the camera roughly into the position of the first navcam picture
+	campos = new THREE.Vector3( orbitpos[0][0]["SC-COM_X"][0], orbitpos[0][0]["SC-COM_Y"][0], orbitpos[0][0]["SC-COM_Z"][0]);
+	params.camera_distance = orbitpos[0][0]["TARGDIST"][0];
+	camera.translateOnAxis( campos.normalize(), 100+params.camera_distance/scaleFactor);
+
+	console.log("Spheres are done!");
+
     });
 
+      // Camera!
+    var width = window.innerWidth;
+    var height = window.innerHeight;
+    
+    camera = new THREE.PerspectiveCamera(5, width / height, 1, 100000);
+    // puts camera on axis of inertia
+    //    campos = new THREE.Vector3(0.00962532, 0.00264994, 0.99995);
 
      // Scene!
     scene = new THREE.Scene();
@@ -341,42 +376,40 @@ function init() {
     sceneOrtho = new THREE.Scene();
 
     // Take the read coordinates and put a sphere on each position
-    var spheregeometry = new THREE.SphereGeometry( 1, 32, 32 );
+
+    var spheregeometry = new THREE.SphereGeometry( 0.5, 32, 32 );
     var spherematerial = new THREE.MeshPhongMaterial( {color: 0x951e3a} );
     spherematerial.transparent = true;
     spherematerial.opacity = 0.4;
-    for (ii=0; ii<orbitpos.length; ii++){
-	var sphere = new THREE.Mesh( spheregeometry, spherematerial );
 
-	sphere.position.x = orbitpos[ii][0]["SC-COM_X"][0]/scaleFactor;
-	sphere.position.y = orbitpos[ii][0]["SC-COM_Y"][0]/scaleFactor;
-	sphere.position.z = orbitpos[ii][0]["SC-COM_Z"][0]/scaleFactor;
-
-	sphere.name =  '"'+orbitpos[ii][0]["OBS_ID"]+'"';
-		
-	for (jj=1; jj<orbitpos[ii].length; jj++){
-	    sphere.name = sphere.name + "," + '"'+orbitpos[ii][jj]["OBS_ID"]+'"';
-	}
-
-	sphere.name = "[" + sphere.name + "]"; // make that a parseable string!
-	console.log( ii + " " + sphere.name );
-
-	scene.add( sphere );
-
-	// Add the sphere to the target list
-	targetList.push(sphere);
-    }
-
-    // Camera!
-    var width = window.innerWidth;
-    var height = window.innerHeight;
     
-    camera = new THREE.PerspectiveCamera(5, width / height, 1, 100000);
-    // puts camera on axis of inertia
-    //    campos = new THREE.Vector3(0.00962532, 0.00264994, 0.99995);
-    campos = new THREE.Vector3( orbitpos[0][0]["SC-COM_X"][0], orbitpos[0][0]["SC-COM_Y"][0], orbitpos[0][0]["SC-COM_Z"][0]);
-    params.camera_distance = orbitpos[0][0]["TARGDIST"][0];
-    camera.translateOnAxis( campos.normalize(), 100+params.camera_distance/scaleFactor);
+
+    
+	
+   //  for (ii=0; ii<orbitpos.length; ii++){
+
+// 	var sphere = new THREE.Mesh( spheregeometry, spherematerial );
+// 	sphere.position.x = orbitpos[ii][0]["SC-COM_X"][0]/scaleFactor;
+// 	sphere.position.y = orbitpos[ii][0]["SC-COM_Y"][0]/scaleFactor;
+// 	sphere.position.z = orbitpos[ii][0]["SC-COM_Z"][0]/scaleFactor;
+
+// 	sphere.name =  '"'+orbitpos[ii][0]["OBS_ID"]+'"';
+		
+// 	for (jj=1; jj<orbitpos[ii].length; jj++){
+// 	    sphere.name = sphere.name + "," + '"'+orbitpos[ii][jj]["OBS_ID"]+'"';
+// 	}
+
+// 	sphere.name = "[" + sphere.name + "]"; // make that a parseable string!
+// 	console.log( ii + " " + sphere.name );
+
+// 	scene.add( sphere );
+
+// 	// Add the sphere to the target list
+// 	targetList.push(sphere);
+//     }
+
+  
+
 
     
     // The ortho-camera for the sprites
@@ -452,19 +485,13 @@ function init() {
     // create the GUI upon the load of the window
     window.onload = createGUI();
 
-    // Anaglyph?
-
-    //this.effect = new THREE.AnaglyphEffect( renderer );
-    //effect.setSize(  window.innerWidth,window.innerHeight );
-
+  
     // intialise the clock
     clock = new THREE.Clock( true );
 
     // initialize object to perform world/screen calculations
     projector = new THREE.Projector();
 
-   
-	
     // when the mouse moves, call the given function
     document.addEventListener( 'mousedown', onDocumentMouseDown, false );
 
@@ -703,6 +730,7 @@ function createScene( geometry ) {
       
     bodyorigin = new THREE.AxisHelper(200);
     bodyorigin.display = params.display_bodyaxes;
+    
     // rotate the body-fixed coordinate-system into the position of the
     // inertial moments
     axis = new THREE.Vector3(0.00962532, 0.00264994, 0.99995);    
@@ -778,33 +806,7 @@ function createGUI() {
     fRegionsSub.add(params.regions, 'Seth').listen();
 
     fRegions.open();	
-
-
-    // Add the spinner here
-
-//      var opts = {
-// 	lines: 13, // The number of lines to draw
-// 	length: 20, // The length of each line
-// 	width: 10, // The line thickness
-// 	radius: 30, // The radius of the inner circle
-// 	corners: 1, // Corner roundness (0..1)
-// 	rotate: 0, // The rotation offset
-// 	direction: 1, // 1: clockwise, -1: counterclockwise
-// 	color: '#000', // #rgb or #rrggbb or array of colors
-// 	speed: 1, // Rounds per second
-// 	trail: 60, // Afterglow percentage
-// 	shadow: false, // Whether to render a shadow
-// 	hwaccel: false, // Whether to use hardware acceleration
-// 	className: 'spinner', // The CSS class to assign to the spinner
-// 	zIndex: 2e9, // The z-index (defaults to 2000000000)
-// 	top: '50%', // Top position relative to parent
-// 	left: '50%' // Left position relative to parent
-//     };
-    
-//     //var target = document.getElementById('foo');
-//     spinner = new Spinner(opts).spin();
-    
-    
+  
 };
 
 // Create the parameter structure. This contains everything for controlling the viewer.
@@ -1132,6 +1134,8 @@ function onDocumentMouseDown( event )
 
 	// Distinguish between only one image and a mosaic of 4 images
 	if (basename.length ==1) {
+	    // In case of 1 image, load the 256 pixel version
+	    
 	    var filename = "images/256/" + basename + "_256_f.png";
 	    console.log("Hit @ " + toString( intersects[0].object.position ) + " " + filename );
 
@@ -1140,6 +1144,7 @@ function onDocumentMouseDown( event )
             
 	}
 	else {
+	    // In case of the mosaic, load the smaller versions
 	    var filename;
 	    var map = new Array(4);
 	    var material = new Array(4);
@@ -1156,51 +1161,58 @@ function onDocumentMouseDown( event )
 		console.log(filename);
 	    }
 
-	    // remove the thumbnail (if it was ever there, fails silently)
+	    // remove the thumbnails (if they were ever there, fails silently)
 	    for (ii=0;ii<sprites.length;ii++){
 		// console.log("remove sprites from group");
 		sceneOrtho.remove( sprites[ii] );
 	    }
 	    sceneOrtho.remove( spriteTL );
 	    
-	    // Assume the four thumbnails have the same size
-	    var width = 128;// material[0].map.image.width;
-	    var height = 128;//material[0].map.image.height;
-	    
-	  	    
 	    sprites = [ new THREE.Sprite( material[0] ), new THREE.Sprite( material[1] ), new THREE.Sprite( material[2] ), new THREE.Sprite( material[3] )];
 	    // console.log('sprites created');
 
-	    // arrange them
-	    var windowwidth = window.innerWidth / 2;
-	    var windowheight = window.innerHeight / 2;
-
+	    
 	    // The images need to be arranged as follows
+	    // Images are referenced with their center point, the window coordinate system
+	    // has the origin at the center as well
 	    //
-	    //  +--------+--------+
-	    //  |        |        |
-	    //  |   (1)  |  (2)   |
-	    //  |        |        |
-	    //  |        |        |
-	    //  +--------+--------+
-	    //  |        |        |
-	    //  |   (0)  |  (3)   |
-	    //  |        |        |
-	    //  |        |        |
-	    //  +--------+--------+
+	    //  |<-- w -->|
+	    //  +---------+---------+ -                   -
+	    //  |         |         | ^                   ^
+	    //  |   (1)   |   (2)   | |                   |
+	    //  |    *    |    *    | h                   |
+	    //  |         |         | |                   |
+	    //  |         |         | v                   |
+	    //  +---------+---------+ -                  
+	    //  |         |         |                     H
+	    //  |   (0)   |   (3)   |      
+	    //  |    *    |    *    |                     |
+	    //  |         |         |                     |
+	    //  |         |         |                     |
+	    //  +---------+---------+                     |
+	    //                                            |
+	    //                                            v 
+	    //                                          X -
+	    //  |<---------------- W ------------------>|
+	    // 
+	    
+	    var windowwidth = window.innerWidth / 2;      // The 'W' from above
+	    var windowheight = window.innerHeight / 2;    // The 'H' from above
 
+	    // Assume the four thumbnails have the same size
+	    var width = 128;                              // The 'w' from above
+	    var height = 128;                             // The 'h' from above
+	    
 
-	    sprites[1].position.set( - windowwidth + width/2,   windowheight - height/2, 1 ); // top left
-	    
-	    sprites[2].position.set( - windowwidth + 3 * width/2,   windowheight - height/2, 1 ); // top right
-	    
-	    sprites[0].position.set( - windowwidth + width/2,   windowheight - 3 * height/2, 1 ); // bottom left
-	    
-	    sprites[3].position.set( - windowwidth + 3 * width/2,   windowheight - 3 * height/2, 1 ); // bottom right
+	    sprites[1].position.set( - windowwidth + width/2     , windowheight - height/2, 1 );     // top left
+	    sprites[2].position.set( - windowwidth + 3 * width/2 , windowheight - height/2, 1 );     // top right
+	    sprites[0].position.set( - windowwidth + width/2     , windowheight - 3 * height/2, 1 ); // bottom left
+	    sprites[3].position.set( - windowwidth + 3 * width/2 , windowheight - 3 * height/2, 1 ); // bottom right
 	    
 	    for (ii=0;ii<sprites.length;ii++){
-		// console.log("add sprites to group");
+		// set the size of the sprites (all the same)
 		sprites[ii].scale.set(width,height,1);
+		// add them to the scene
 		sceneOrtho.add( sprites[ii] );
 	    }
 	    
