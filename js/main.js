@@ -10,8 +10,8 @@ var SCREEN_HEIGHT = window.innerHeight;
 
 // A somwhat reduced model
 //var bjsonPath = "http://localhost:8000/models/67P_HD_2015-05-09-r10.js";
-var bjsonPath = "models/67P_HD_2015-05-09-r10.js";
-var texturePath = "texture/texture_Background_s.png";
+// var bjsonPath = "models/67P_HD_2015-05-09-r10.js";
+var texturePath = "texture/Small/texture_Background_s.png";
 
 var scaleFactor = 1;  // 20 units per kilometre
 var scaleFactorComet = 0.001;  // 1000 units per kilometre
@@ -136,7 +136,7 @@ function init() {
 	
     // create the loader for the 3D-object            
     // var bjsonLoader = new THREE.BinaryLoader(true);
-    var bjsonLoader = new THREE.JSONLoader();
+    // var bjsonLoader = new THREE.JSONLoader();
     
     // Parameters
     params = new createParams();
@@ -226,7 +226,7 @@ function init() {
 
     // MODEL + Texture
     // createScene is a call-back function, so after this, the scene is complete
-    //bjsonLoader.load(bjsonPath,createScene);
+    // bjsonLoader.load(bjsonPath,createScene);
     createScene();
     
 
@@ -335,7 +335,7 @@ function createTextures(){
 	    ext = '.png';
 	};
 
-	filename ='texture/texture_'+name+ext;
+	filename ='texture/Small/texture_'+name+ext;
 	//console.log( filename);
 	return( filename );
     }
@@ -1212,12 +1212,7 @@ function displaySprites( target ){
 	    sceneOrtho.add( a );
 	});
 	
-	// for (ii=0;ii<sprites.length;ii++){
-// 	    // set the size of the sprites (all the same)
-// 	    sprites[ii].scale.set(width,height,1);
-// 	    // add them to the scene
-// 	    sceneOrtho.add( sprites[ii] );
-// 	}
+
 	
     }
 
