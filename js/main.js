@@ -161,7 +161,7 @@ function init() {
     cameraOrtho.position.z = 10;
 
     // the view camera
-    cameraView = new THREE.PerspectiveCamera(5,1, 1, 100000);
+    // cameraView = new THREE.PerspectiveCamera(5,1, 1, 100000);
    
     //Scenes 
     scene = new THREE.Scene();
@@ -170,7 +170,7 @@ function init() {
     sceneOrtho = new THREE.Scene();
 
     // Scene for the 'live view'
-    sceneView = new THREE.Scene();
+    // sceneView = new THREE.Scene();
     
     // Take the read coordinates and put a sphere on each position
     createPositionIndicators();
@@ -609,12 +609,12 @@ function createGUI() {
     f1.add(params,'phi_light', 0, 360).name('Phi');
     f1.add(params,'ambient_volume', 0, 1).name('Ambient Light');
     
-    f1.open();
+    // f1.open();
 
     var f2 = gui.addFolder('Navcam pictures');
     f2.add(params.navcam, 'display_positions').name( 'Navcam pictures' );
     f2.add(params.navcam, 'camera_follow').name( 'Follow position' );
-    f2.add(params.navcam, 'model_view').name( 'Model view');
+    //f2.add(params.navcam, 'model_view').name( 'Model view');
 
     
    //  var fCamera = gui.addFolder('Camera');
@@ -624,7 +624,7 @@ function createGUI() {
     var fAnimation = gui.addFolder('Animation');
     fAnimation.add(params,'spin').name('Spin');
     fAnimation.add(params,'omega',0 ,1).name('Rotation speed');
-    fAnimation.open();
+    // fAnimation.open();
     
     var fRegions = gui.addFolder('Regions');
     fRegions.add(params.regions,'AllRegions', ['None', 'All', 'Some']).name('Display Regions').listen();
@@ -920,7 +920,7 @@ function render() {
     renderer.render( scene, camera );
     //renderer.clearDepth();
     renderer.render( sceneOrtho, cameraOrtho );
-    renderer.render( sceneView, cameraView);
+    // renderer.render( sceneView, cameraView);
 }
 
 function hide(object){
