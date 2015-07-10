@@ -44,17 +44,17 @@ TODO:
     </div>
 
 
-    <script src="js/three.min.js"></script>
-    <script src="js/BinaryLoader.js"></script>
-    <script src="js/Detector.js"></script>
-    <script src="js/TrackballControls.js"></script>
-    <script src="js/OrbitControls.js"></script>
-    <!-- script src="js/AnaglyphEffect.js"></script> -->
-    <script src="js/stats.min.js"></script>
+    <script src="js/base/three.min.js"></script>
+    <script src="js/base/BinaryLoader.js"></script>
+    <script src="js/base/Detector.js"></script>
+    <script src="js/base/TrackballControls.js"></script>
+    <script src="js/base/OrbitControls.js"></script>
+    <!-- script src="js/base/AnaglyphEffect.js"></script> -->
+    <script src="js/base/stats.min.js"></script>
 
-    <script type="text/javascript" src="js/jquery.min.js"></script>
+    <script type="text/javascript" src="js/base/jquery.min.js"></script>
 
-    <script type="text/javascript" src="js/dat.gui.min.js"></script>
+    <script type="text/javascript" src="js/base/dat.gui.min.js"></script>
 
 
     
@@ -182,17 +182,34 @@ uniform sampler2D t7;
      })
      </script>
     
-    <script type="text/javascript" language="javascript" src="data/fits_s.json"></script>
-    <script type="text/javascript" language="javascript" src="models/67P_HD_2015-05-09-r10_var.js"></script> 
-
   
-    <script type="text/javascript" language="javascript" src="js/main.js"></script>
-   
-
 
     
 </heaad>
     <body>
+    <script type="text/javascript" language="javascript" src="data/fits_s.json"></script>
+    <script type="text/javascript" language="javascript" src="models/67P_HD_2015-05-09-r10_var.js"></script> 
+
+    <script type="text/javascript" language="javascript" src="js/create/createparams.js"></script>
+    <script type="text/javascript" language="javascript" src="js/create/creategui.js"></script>
+    <script type="text/javascript" language="javascript" src="js/create/createpositionindicators.js"></script>
+    <script type="text/javascript" language="javascript" src="js/create/createuniforms.js"></script>
+    <script type="text/javascript" language="javascript" src="js/create/creatematerials.js"></script>
+    <script type="text/javascript" language="javascript" src="js/create/createscene.js"></script>
+    <script type="text/javascript" language="javascript" src="js/create/createtextures.js"></script>
+    <script type="text/javascript" language="javascript" src="js/create/createhudsprites.js"></script>
+
+    <script type="text/javascript" language="javascript" src="js/update/updatehudsprites.js"></script>
+    <script type="text/javascript" language="javascript" src="js/update/update.js"></script>
+   
     
+    
+    <script type="text/javascript" language="javascript" src="js/events.js"></script>
+
+    <script type="text/javascript" language="javascript" src="js/animate.js"></script>
+    <script type="text/javascript" language="javascript" src="js/render.js"></script>
+    <script type="text/javascript" language="javascript" src="js/init.js"></script>
+    <script type="text/javascript" language="javascript" src="js/main.js"></script>
+   
     </body>
     </html>
